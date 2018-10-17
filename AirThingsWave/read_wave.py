@@ -46,45 +46,52 @@ if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", sys.argv[1].l
     print "USAGE: read_wave.py \"MAC\"\n where MAC is the address of the Wave and on the format AA:BB:CC:DD:EE:FF"
     sys.exit(1)
 
-try:
-    sensors = []
-    sensors.append(Sensor("DateTime", UUID(0x2A08), 'HBBBBB', "\t", 0))
-    sensors.append(Sensor("Temperature", UUID(0x2A6E), 'h', "deg C\t", 1.0/100.0))
-    sensors.append(Sensor("Humidity", UUID(0x2A6F), 'H', "%\t\t", 1.0/100.0))
-    sensors.append(Sensor("Radon 24h avg", "b42e01aa-ade7-11e4-89d3-123b93f75cba", 'H', "Bq/m3\t", 1.0))
-    sensors.append(Sensor("Radon long term", "b42e0a4c-ade7-11e4-89d3-123b93f75cba", 'H', "Bq/m3\t", 1.0))
+sensors = []
+sensors.append(Sensor("DateTime", UUID(0x2A08), 'HBBBBB', "\t", 0))
+sensors.append(Sensor("Temperature", UUID(0x2A6E), 'h', "deg C\t", 1.0/100.0))
+sensors.append(Sensor("Humidity", UUID(0x2A6F), 'H', "%\t\t", 1.0/100.0))
+sensors.append(Sensor("Radon 24h avg", "b42e01aa-ade7-11e4-89d3-123b93f75cba", 'H', "Bq/m3\t", 1.0))
+sensors.append(Sensor("Radon long term", "b42e0a4c-ade7-11e4-89d3-123b93f75cba", 'H', "Bq/m3\t", 1.0))
 
-    # Print header row
-    str_header = "\t"
-    for s in sensors:
-        str_header += s.name + "\t"
-    print str_header
+# Print header row
+str_header = "\t"
+for s in sensors:
+    str_header += s.name + "\t"
+print str_header
+
+try:
 
     while 1:
-        p = Peripheral(sys.argv[1])
-        # Get and print sensor data
-        str_out = ""
-        post_data = "reading,device=basement "
-        for s in sensors:
-            ch  = p.getCharacteristics(uuid=s.uuid)[0]
-            if (ch.supportsRead()):
-                val = ch.read()
-                val = struct.unpack(s.format_type, val)
-                if s.name == "DateTime":
-                    str_out += str(datetime(val[0], val[1], val[2], val[3], val[4], val[5])) + s.unit
-                else:
-                    str_out += str(val[0] * s.scale) + " " + s.unit
-                    if post_data ==  "reading,device=basement ":
-                        post_data += s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
+        try:
+            p = Peripheral(sys.argv[1])
+            # Get and print sensor data
+            str_out = ""
+            post_data = "reading,device=basement "
+            for s in sensors:
+                ch  = p.getCharacteristics(uuid=s.uuid)[0]
+                if (ch.supportsRead()):
+                    val = ch.read()
+                    val = struct.unpack(s.format_type, val)
+                    if s.name == "DateTime":
+                        str_out += str(datetime(val[0], val[1], val[2], val[3], val[4], val[5])) + s.unit
                     else:
-                        post_data += ',' + s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
-        # print str_out
-        # print post_data
-        r = requests.post('http://192.168.1.40:8086/write?db=AirThingsWave', data = post_data)
-        print(r)
-        p.disconnect()
-        time.sleep(15)
+                        str_out += str(val[0] * s.scale) + " " + s.unit
+                        if post_data ==  "reading,device=basement ":
+                            post_data += s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
+                        else:
+                            post_data += ',' + s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
+            # print str_out
+            # print post_data
+            r = requests.post('http://192.168.1.40:8086/write?db=AirThingsWave', data = post_data)
+            print(r)
+            p.disconnect()
+            time.sleep(15)
+
+        except:
+            time.sleep(5)
+
+        finally:
+            p.disconnect()
 
 finally:
     p.disconnect()
-
