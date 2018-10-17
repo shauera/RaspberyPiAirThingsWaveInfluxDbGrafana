@@ -78,11 +78,12 @@ try:
                         post_data += s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
                     else:
                         post_data += ',' + s.name.replace(" ", "\ ") + '=' + str(val[0] * s.scale)
-        print str_out
-        print post_data
+        # print str_out
+        # print post_data
         r = requests.post('http://192.168.1.40:8086/write?db=AirThingsWave', data = post_data)
         print(r)
         p.disconnect()
+        time.sleep(15)
 
 finally:
     p.disconnect()
